@@ -179,113 +179,7 @@ GROUP BY
 ORDER BY 
     registration_rank;
 ```
-1️⃣ Window Functions
-File: window_functions.sql
-Purpose: Rank courses by number of registered students, show cumulative enrolment trends, and analyse student registration patterns.
 
-```sql
--- ------------------------------------------------------------
--- 1. Basic Ranking - Rank courses by enrolment count
--- ------------------------------------------------------------
-SELECT 
-    c.course_id,
-    c.course_name,
-    c.credits,
-    COUNT(r.student_id) AS enrolled_students,
-    RANK() OVER (ORDER BY COUNT(r.student_id) DESC) AS popularity_rank,
-    DENSE_RANK() OVER (ORDER BY COUNT(r.student_id) DESC) AS dense_popularity_rank,
-    ROW_NUMBER() OVER (ORDER BY COUNT(r.student_id) DESC, c.course_name) AS row_number
-FROM 
-    courses c
-LEFT JOIN 
-    registrations r ON c.course_id = r.course_id
-GROUP BY 
-    c.course_id, c.course_name, c.credits
-ORDER BY 
-    popularity_rank;
-
--- ------------------------------------------------------------
--- 2. Ranking with partition by course credits
---    Shows ranking within each credit group (e.g., 3-credit courses)
--- ------------------------------------------------------------
-SELECT 
-    c.course_id,
-    c.course_name,
-    c.credits,
-    COUNT(r.student_id) AS enrolled_students,
-    RANK() OVER (PARTITION BY c.credits ORDER BY COUNT(r.student_id) DESC) AS rank_within_credit_group
-FROM 
-    courses c
-LEFT JOIN 
-    registrations r ON c.course_id = r.course_id
-GROUP BY 
-    c.course_id, c.course_name, c.credits
-ORDER BY 
-    c.credits, rank_within_credit_group;
-
--- ------------------------------------------------------------
--- 3. Cumulative registrations over time (running total)
--- ------------------------------------------------------------
-SELECT 
-    TRUNC(r.registration_date) AS reg_date,
-    COUNT(*) AS daily_registrations,
-    SUM(COUNT(*)) OVER (ORDER BY TRUNC(r.registration_date) 
-                        ROWS UNBOUNDED PRECEDING) AS cumulative_registrations
-FROM 
-    registrations r
-GROUP BY 
-    TRUNC(r.registration_date)
-ORDER BY 
-    reg_date;
-
--- ------------------------------------------------------------
--- 4. Top 3 most popular courses using ROW_NUMBER filter
--- ------------------------------------------------------------
-WITH ranked_courses AS (
-    SELECT 
-        c.course_id,
-        c.course_name,
-        COUNT(r.student_id) AS enrolled,
-        ROW_NUMBER() OVER (ORDER BY COUNT(r.student_id) DESC) AS row_num
-    FROM 
-        courses c
-    LEFT JOIN 
-        registrations r ON c.course_id = r.course_id
-    GROUP BY 
-        c.course_id, c.course_name
-)
-SELECT 
-    course_id,
-    course_name,
-    enrolled,
-    row_num AS rank_position
-FROM 
-    ranked_courses
-WHERE 
-    row_num <= 3
-ORDER BY 
-    row_num;
-
--- ------------------------------------------------------------
--- 5. Each student's registration count and ranking
---    (Who has the most courses?)
--- ------------------------------------------------------------
-SELECT 
-    s.student_id,
-    s.first_name || ' ' || s.last_name AS full_name,
-    COUNT(r.course_id) AS courses_taken,
-    RANK() OVER (ORDER BY COUNT(r.course_id) DESC) AS registration_rank
-FROM 
-    students s
-LEFT JOIN 
-    registrations r ON s.student_id = r.student_id
-GROUP BY 
-    s.student_id, s.first_name, s.last_name
-ORDER BY 
-    registration_rank;
-
-
-```
 2️⃣ Anonymous Block
 File: anonymous_block.sql
 Purpose: Perform a single enrolment transaction with full validation and error handling, without creating a persistent procedure. Perfect for ad‑hoc operations.
@@ -295,8 +189,8 @@ SET SERVEROUTPUT ON;
 
 DECLARE
     -- Input parameters (modify these to test different scenarios)
-    v_student_id    NUMBER := 110;   -- Change to any existing student
-    v_course_id     NUMBER := 203;   -- Change to any existing course
+    v_student_id    NUMBER := 110;   
+    v_course_id     NUMBER := 203;   
     
     -- Local variables
     v_available     NUMBER;
@@ -506,7 +400,9 @@ END enrol_student;
 /
 ```
 4️⃣ User‑defined Function – get_total_credits
+
 File: function.sql
+
 Purpose: Returns the total number of credits a student has accumulated from all registered courses. Can be used in SQL queries or other PL/SQL blocks.
 
 ```sql
