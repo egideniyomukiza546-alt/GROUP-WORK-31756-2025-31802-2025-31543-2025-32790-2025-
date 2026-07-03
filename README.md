@@ -1,9 +1,9 @@
-# 🎓 Student Course Registration System  
+# Student Course Registration System  
 ### PL/SQL Group Project – DPR400210: Database Programming
 
 ---
 
-## 📌 Overview
+## Overview
 
 This project implements a **simple database application** using **Oracle PL/SQL** to solve a real‑world problem: managing student course registrations at a university.  
 The system ensures that:
@@ -16,7 +16,7 @@ All code is written in PL/SQL and is fully documented. The project was developed
 
 ---
 
-## 🧩 Problem Statement
+##  Problem Statement
 
 Universities often manage course registrations manually or with spreadsheets, leading to:
 - Over‑enrolment beyond seat capacity.
@@ -34,7 +34,7 @@ Our system provides a **relational database** with a set of **PL/SQL programs** 
 
 ---
 
-## 🗄️ Database Schema
+##  Database Schema
 
 The database consists of three tables with proper constraints.
 
@@ -68,18 +68,113 @@ The database consists of three tables with proper constraints.
 
 ---
 
-## 🔧 PL/SQL Implementation
+## 🔧 PL/SQL Implementation – Full Code
 
-The project demonstrates the four required PL/SQL concepts:
+Below is the **complete implementation** for all four required concepts.
 
-### 1. Window Functions
-- **File:** `window_functions.sql`
-- **Purpose:** Rank courses by number of registered students and show cumulative enrolment trends.
-- **Sample Query:**
-  ```sql
-  SELECT course_id, course_name, 
-         COUNT(student_id) AS enrolled,
-         RANK() OVER (ORDER BY COUNT(student_id) DESC) AS popularity_rank
-  FROM courses c
-  LEFT JOIN registrations r USING(course_id)
-  GROUP BY course_id, course_name;
+---
+
+### 1️⃣ Window Functions
+**File:** `window_functions.sql`  
+**Purpose:** Rank courses by number of registered students, show cumulative enrolment trends, and analyse student registration patterns.
+
+```sql
+-- ------------------------------------------------------------
+-- 1. Basic Ranking - Rank courses by enrolment count
+-- ------------------------------------------------------------
+SELECT 
+    c.course_id,
+    c.course_name,
+    c.credits,
+    COUNT(r.student_id) AS enrolled_students,
+    RANK() OVER (ORDER BY COUNT(r.student_id) DESC) AS popularity_rank,
+    DENSE_RANK() OVER (ORDER BY COUNT(r.student_id) DESC) AS dense_popularity_rank,
+    ROW_NUMBER() OVER (ORDER BY COUNT(r.student_id) DESC, c.course_name) AS row_number
+FROM 
+    courses c
+LEFT JOIN 
+    registrations r ON c.course_id = r.course_id
+GROUP BY 
+    c.course_id, c.course_name, c.credits
+ORDER BY 
+    popularity_rank;
+
+-- ------------------------------------------------------------
+-- 2. Ranking with partition by course credits
+--    Shows ranking within each credit group (e.g., 3-credit courses)
+-- ------------------------------------------------------------
+SELECT 
+    c.course_id,
+    c.course_name,
+    c.credits,
+    COUNT(r.student_id) AS enrolled_students,
+    RANK() OVER (PARTITION BY c.credits ORDER BY COUNT(r.student_id) DESC) AS rank_within_credit_group
+FROM 
+    courses c
+LEFT JOIN 
+    registrations r ON c.course_id = r.course_id
+GROUP BY 
+    c.course_id, c.course_name, c.credits
+ORDER BY 
+    c.credits, rank_within_credit_group;
+
+-- ------------------------------------------------------------
+-- 3. Cumulative registrations over time (running total)
+-- ------------------------------------------------------------
+SELECT 
+    TRUNC(r.registration_date) AS reg_date,
+    COUNT(*) AS daily_registrations,
+    SUM(COUNT(*)) OVER (ORDER BY TRUNC(r.registration_date) 
+                        ROWS UNBOUNDED PRECEDING) AS cumulative_registrations
+FROM 
+    registrations r
+GROUP BY 
+    TRUNC(r.registration_date)
+ORDER BY 
+    reg_date;
+
+-- ------------------------------------------------------------
+-- 4. Top 3 most popular courses using ROW_NUMBER filter
+-- ------------------------------------------------------------
+WITH ranked_courses AS (
+    SELECT 
+        c.course_id,
+        c.course_name,
+        COUNT(r.student_id) AS enrolled,
+        ROW_NUMBER() OVER (ORDER BY COUNT(r.student_id) DESC) AS row_num
+    FROM 
+        courses c
+    LEFT JOIN 
+        registrations r ON c.course_id = r.course_id
+    GROUP BY 
+        c.course_id, c.course_name
+)
+SELECT 
+    course_id,
+    course_name,
+    enrolled,
+    row_num AS rank_position
+FROM 
+    ranked_courses
+WHERE 
+    row_num <= 3
+ORDER BY 
+    row_num;
+
+-- ------------------------------------------------------------
+-- 5. Each student's registration count and ranking
+--    (Who has the most courses?)
+-- ------------------------------------------------------------
+SELECT 
+    s.student_id,
+    s.first_name || ' ' || s.last_name AS full_name,
+    COUNT(r.course_id) AS courses_taken,
+    RANK() OVER (ORDER BY COUNT(r.course_id) DESC) AS registration_rank
+FROM 
+    students s
+LEFT JOIN 
+    registrations r ON s.student_id = r.student_id
+GROUP BY 
+    s.student_id, s.first_name, s.last_name
+ORDER BY 
+    registration_rank;
