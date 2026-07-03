@@ -117,38 +117,38 @@ EXCEPTION
     -- Course full
     WHEN e_course_full THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('❌ Error: Course ' || p_course_id || 
+        DBMS_OUTPUT.PUT_LINE(' Error: Course ' || p_course_id || 
                              ' is full (max seats: ' || v_max_seats || ').');
         RAISE_APPLICATION_ERROR(-20001, 'Course is full');
 
     -- Duplicate registration
     WHEN e_duplicate THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('❌ Error: Student ' || p_student_id || 
+        DBMS_OUTPUT.PUT_LINE(' Error: Student ' || p_student_id || 
                              ' is already registered for course ' || p_course_id || '.');
         RAISE_APPLICATION_ERROR(-20002, 'Duplicate registration');
 
     -- Student does not exist
     WHEN e_invalid_student THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('❌ Error: Student ID ' || p_student_id || ' does not exist.');
+        DBMS_OUTPUT.PUT_LINE(' Error: Student ID ' || p_student_id || ' does not exist.');
         RAISE_APPLICATION_ERROR(-20003, 'Invalid student ID');
 
     -- Course does not exist
     WHEN NO_DATA_FOUND THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('❌ Error: Course ID ' || p_course_id || ' does not exist.');
+        DBMS_OUTPUT.PUT_LINE(' Error: Course ID ' || p_course_id || ' does not exist.');
         RAISE_APPLICATION_ERROR(-20004, 'Invalid course ID');
 
     -- Any other unexpected error (e.g., unique constraint violation from the index)
     WHEN DUP_VAL_ON_INDEX THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('❌ Error: Duplicate registration (unique constraint violated).');
+        DBMS_OUTPUT.PUT_LINE(' Error: Duplicate registration (unique constraint violated).');
         RAISE_APPLICATION_ERROR(-20002, 'Duplicate registration');
 
     WHEN OTHERS THEN
         ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('❌ Unexpected error: ' || SQLERRM);
+        DBMS_OUTPUT.PUT_LINE(' Unexpected error: ' || SQLERRM);
         RAISE;  -- re-raise the original error
 
 END enrol_student;
